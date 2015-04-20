@@ -6,7 +6,8 @@
     "start": "node app.js"
   },
   "dependencies": {
-    "chokidar": "*"
+    "chokidar": "*",
+    "nodegit": "*"
   },
   "engines": {
     "node": "*",
