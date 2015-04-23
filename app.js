@@ -4,32 +4,55 @@ var path = require('path');
 
 var watcher = chokidar.watch('shots/', {ignored: /^\./, persistent: true});
 
-var repo;
-var index;
-var oid;
-var parent;
+var repository;
+var signature = nodegit.Signature.create("Kevin Coleman", "kevin.n.coleman@gmail.com", 123456789, 60);
 
 watcher
   .on('add', function(screenShot) {
 
+    // make sure temp write files aren’t added
     if (screenShot.indexOf(".Screen") == -1) {
-      console.log(screenShot);
+
       // commit newest file
       nodegit.Repository.open(path.resolve(__dirname, './.git'))
       .then(function(repo) {
-        return repo.openIndex();
+        repository = repo;
+        return repository.openIndex();
       })
-      .then(function(indexResult) {
-        index = indexResult;
-        return index.read(1);
+      .then(function(index) {
+        index.read(1);
+        index.addByPath(screenShot);
+        index.write();
+
+        return index.writeTree();
       })
+
+      // commit file(s) to repo
+      .then(function(oid) {
+        return repository.createCommit("HEAD", signature, signature,
+          "screenshot added", oid, []);
+      })
+
+      // Get origin remote and push to it
       .then(function() {
-        return index.addByPath(screenShot);
-      })
-      .then(function() {
-        return index.write();
-      })
-      .done(function() {
+        return nodegit.Remote.lookup(repository, "origin")
+        .then(function(remoteResult) {
+          remote = remoteResult;
+
+          remote.setCallbacks({
+            credentials: function(url, userName) {
+              return nodegit.Cred.sshKeyFromAgent(userName);
+            }
+          });
+
+          // Create the push object for this remote
+          return remote.push(
+            ["refs/heads/master:refs/heads/master"],
+            null,
+            repository.defaultSignature(),
+            "new screenshot pushed");
+        });
+      }).done(function() {
         console.log('File', screenShot, 'has been added');
       });
 
