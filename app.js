@@ -32,6 +32,9 @@ watcher
         return repository.createCommit("HEAD", signature, signature,
           "screenshot added", oid, []);
       })
+      .catch(function(err){
+        console.log("Failed!", err);
+      })
 
       // Get origin remote and push to it
       .then(function() {
@@ -52,7 +55,8 @@ watcher
             repository.defaultSignature(),
             "new screenshot pushed");
         });
-      }).done(function() {
+      })
+      .done(function() {
         console.log('File', screenShot, 'has been added');
       });
 
